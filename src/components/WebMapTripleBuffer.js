@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import L from 'leaflet';
 import dataService from '../services/dataService';
 import analyticsService from '../services/analyticsService';
+import usageTracker from '../services/usageTracker';
 import 'leaflet/dist/leaflet.css';
 import './WebMap.css';
 
@@ -108,46 +109,57 @@ const WebMapTripleBuffer = ({
       // Add MapBox satellite imagery with country borders
       const mapboxAccessToken = process.env.REACT_APP_MAPBOX_TOKEN || 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw'; // Default public token for testing
       
+      // Initialize usage tracking
+      const usageStatus = usageTracker.initialize();
+      const shouldUseMapBox = usageTracker.shouldUseMapBox() && !usageTracker.isForcedFallback();
+      
+      console.log('📊 MapBox Usage Status:', usageStatus);
+      
       let tileLayer;
-      try {
-        // MapBox Satellite with borders and minimal labels
-        tileLayer = L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/satellite-streets-v12/tiles/{z}/{x}/{y}@2x?access_token=' + mapboxAccessToken, {
-          attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> <strong><a href="https://www.mapbox.com/map-feedback/" target="_blank">Improve this map</a></strong>',
-          noWrap: false,
-          continuousWorld: true,
-          maxZoom: 10,
-          tileSize: 512,
-          zoomOffset: -1,
-          id: 'mapbox.satellite',
-        });
-
-        tileLayer.addTo(map);
-        
-        // Add error handler and fallback to Esri
-        tileLayer.on('tileerror', () => {
-          console.warn('MapBox tiles failed, falling back to Esri satellite');
-          map.removeLayer(tileLayer);
+      
+      if (shouldUseMapBox) {
+        try {
+          // Track MapBox usage
+          usageTracker.trackRequest('satellite');
           
-          // Fallback to Esri World Imagery
-          const fallbackLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+          // MapBox Pure Satellite (no labels, clean imagery)
+          tileLayer = L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/satellite-v9/tiles/{z}/{x}/{y}@2x?access_token=' + mapboxAccessToken, {
+            attribution: '© <a href="https://www.mapbox.com/about/maps/">Mapbox</a> © <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> <strong><a href="https://www.mapbox.com/map-feedback/" target="_blank">Improve this map</a></strong>',
+            noWrap: false,
+            continuousWorld: true,
+            maxZoom: 10,
+            tileSize: 512,
+            zoomOffset: -1,
+            id: 'mapbox.satellite',
+          });
+
+          tileLayer.addTo(map);
+          
+          console.log('✅ Using MapBox satellite imagery');
+          
+        } catch (err) {
+          console.warn('MapBox failed, falling back to Esri:', err);
+          shouldUseMapBox = false;
+        }
+      }
+      
+      if (!shouldUseMapBox) {
+        try {
+          // Fallback to Esri World Imagery (free, no API limits)
+          tileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
             attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
             noWrap: false,
             continuousWorld: true,
             maxZoom: 10,
           });
-          fallbackLayer.addTo(map);
-        });
-        
-      } catch (err) {
-        console.error('Error adding MapBox layer, using Esri fallback:', err);
-        // Direct fallback to Esri World Imagery
-        tileLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-          attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
-          noWrap: false,
-          continuousWorld: true,
-          maxZoom: 10,
-        });
-        tileLayer.addTo(map);
+          
+          tileLayer.addTo(map);
+          console.log('🔄 Using Esri fallback imagery (usage protection active)');
+          
+        } catch (err) {
+          console.error('Both MapBox and Esri failed:', err);
+          setError('Failed to load map imagery');
+        }
       }
 
       // Add click listener for anywhere on the map

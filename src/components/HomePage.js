@@ -65,7 +65,7 @@ const HomePage = ({ onStartGame }) => {
         
         <div className="header-logo">
           <span className="header-icon">🌍</span>
-          <span className="header-title">GeoQuiz</span>
+          <span className="header-title">GeoQuizPro</span>
         </div>
       </header>
 

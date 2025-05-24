@@ -1,7 +1,7 @@
 {
-  "name": "geoquiz",
+  "name": "geoquizpro",
   "version": "2.0.0",
-  "description": "Advanced interactive geography quiz with satellite maps and triple-buffer technology",
+  "description": "GeoQuizPro - Advanced interactive geography quiz with satellite maps and triple-buffer technology",
   "private": true,
   "homepage": ".",
   "scripts": {
