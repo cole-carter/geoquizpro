@@ -1,0 +1,89 @@
+.game-stats {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  background: rgba(245, 245, 220, 0.9);
+  padding: 12px 20px;
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.stat-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 18px;
+  font-weight: bold;
+  color: #000;
+}
+
+.streak-value {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.progress-container {
+  position: relative;
+  width: 60px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-bar-mini {
+  height: 100%;
+  background: #10b981;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  font-weight: 600;
+  color: white;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .game-stats {
+    gap: 12px;
+    padding: 8px 12px;
+  }
+  
+  .stat-label {
+    font-size: 10px;
+  }
+  
+  .stat-value {
+    font-size: 16px;
+  }
+  
+  .progress-container {
+    width: 40px;
+  }
+}
+
+@media (max-width: 480px) {
+  .game-stats {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}

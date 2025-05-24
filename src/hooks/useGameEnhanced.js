@@ -1,0 +1,340 @@
+import { useState, useEffect, useCallback } from 'react';
+import dataService from '../services/dataService';
+import analyticsService from '../services/analyticsService';
+
+export const useGameEnhanced = (gameType = 'location', questionCount = 10) => {
+  const [gameState, setGameState] = useState({
+    questions: [],
+    currentQuestion: 0,
+    score: 0,
+    timeLeft: 30,
+    isActive: false,
+    isComplete: false,
+    answers: [],
+    streak: 0,
+    bestStreak: 0,
+    gameId: null,
+    startTime: null
+  });
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const generateQuestions = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      
+      // Ensure data is loaded
+      await dataService.initialize();
+      
+      // Get random countries with population filter for better gameplay
+      const countries = dataService.getRandomCountries(questionCount);
+      
+      if (countries.length === 0) {
+        throw new Error('No countries available for quiz');
+      }
+
+      const questions = countries.map((country, index) => {
+        const baseQuestion = {
+          id: index,
+          country,
+          type: gameType,
+          answered: false,
+          correct: false,
+          timeSpent: 0
+        };
+
+        switch (gameType) {
+          case 'location':
+            return {
+              ...baseQuestion,
+              question: `Where is ${country.name}?`,
+              answer: country.cca3,
+              instructions: 'Click on the country on the map'
+            };
+          
+          case 'capital':
+            return {
+              ...baseQuestion,
+              question: `What is the capital of ${country.name}?`,
+              answer: country.capital,
+              options: generateCapitalOptions(country.capital),
+              instructions: 'Select the correct capital city'
+            };
+          
+          case 'flag':
+            return {
+              ...baseQuestion,
+              question: `Which country does this flag belong to?`,
+              flag: country.flag,
+              answer: country.cca3,
+              instructions: 'Click on the country on the map'
+            };
+          
+          case 'population':
+            return {
+              ...baseQuestion,
+              question: `What is the population range of ${country.name}?`,
+              answer: dataService.getPopulationRange(country.population),
+              options: getPopulationRangeOptions(),
+              instructions: 'Select the correct population range'
+            };
+          
+          default:
+            return baseQuestion;
+        }
+      });
+      
+      return questions;
+    } catch (err) {
+      console.error('Failed to generate questions:', err);
+      setError(err.message);
+      analyticsService.trackError(err, { context: 'question_generation', gameType });
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [gameType, questionCount]);
+
+  const generateCapitalOptions = (correctCapital) => {
+    // Get ALL countries from data service
+    const allCountries = dataService.getAllCountries();
+    const options = [correctCapital];
+    const otherCapitals = allCountries
+      .filter(country => country.capital !== correctCapital)
+      .map(country => country.capital)
+      .filter(capital => capital && capital !== 'Unknown' && capital !== '');
+    
+    // Add 3 random other capitals from ALL countries
+    while (options.length < 4 && otherCapitals.length > 0) {
+      const randomIndex = Math.floor(Math.random() * otherCapitals.length);
+      const randomCapital = otherCapitals.splice(randomIndex, 1)[0];
+      if (!options.includes(randomCapital)) {
+        options.push(randomCapital);
+      }
+    }
+    
+    // Shuffle options
+    return options.sort(() => Math.random() - 0.5);
+  };
+
+  const getPopulationRangeOptions = () => {
+    return [
+      'Under 1M',
+      '1M - 10M', 
+      '10M - 50M',
+      '50M - 100M',
+      '100M - 500M',
+      'Over 500M'
+    ];
+  };
+
+  const startGame = useCallback(async () => {
+    try {
+      setError(null);
+      const questions = await generateQuestions();
+      const gameId = `${gameType}_${Date.now()}`;
+      
+      setGameState({
+        questions,
+        currentQuestion: 0,
+        score: 0,
+        timeLeft: 30,
+        isActive: true,
+        isComplete: false,
+        answers: [],
+        streak: 0,
+        bestStreak: 0,
+        gameId,
+        startTime: Date.now()
+      });
+
+      // Track game start
+      analyticsService.trackGameStarted(gameType);
+      
+    } catch (err) {
+      setError(err.message);
+    }
+  }, [generateQuestions, gameType]);
+
+  const answerQuestion = useCallback((answer, timeSpent = 0) => {
+    setGameState(prev => {
+      const currentQ = prev.questions[prev.currentQuestion];
+      const isCorrect = answer === currentQ.answer;
+      
+      // Calculate score with time bonus
+      let scoreEarned = 0;
+      if (isCorrect) {
+        const timeBonus = Math.max(1, Math.floor((30 - timeSpent) / 3));
+        const streakBonus = Math.floor(prev.streak / 3);
+        scoreEarned = 10 + timeBonus + streakBonus;
+      }
+      
+      const newScore = prev.score + scoreEarned;
+      const newStreak = isCorrect ? prev.streak + 1 : 0;
+      const newBestStreak = Math.max(prev.bestStreak, newStreak);
+      
+      // Update question
+      const updatedQuestions = [...prev.questions];
+      updatedQuestions[prev.currentQuestion] = {
+        ...currentQ,
+        answered: true,
+        correct: isCorrect,
+        timeSpent,
+        userAnswer: answer,
+        scoreEarned
+      };
+
+      // Record answer
+      const newAnswer = {
+        questionId: prev.currentQuestion,
+        answer,
+        correct: isCorrect,
+        timeSpent,
+        scoreEarned
+      };
+      const newAnswers = [...prev.answers, newAnswer];
+
+      // Track the answer
+      analyticsService.trackQuestionAnswered(gameType, {
+        countryId: currentQ.country.cca3,
+        countryName: currentQ.country.name,
+        correct: isCorrect,
+        timeSpent,
+        scoreEarned,
+        streak: newStreak,
+        questionType: currentQ.type,
+        userAnswer: answer,
+        correctAnswer: currentQ.answer
+      });
+
+      // Check if game is complete
+      const nextQuestion = prev.currentQuestion + 1;
+      const isComplete = nextQuestion >= prev.questions.length;
+
+      // Track game completion
+      if (isComplete) {
+        const gameDuration = Date.now() - prev.startTime;
+        const questionsCorrect = newAnswers.filter(a => a.correct).length;
+        const accuracy = (questionsCorrect / prev.questions.length) * 100;
+        const averageTimePerQuestion = gameDuration / prev.questions.length;
+        
+        analyticsService.trackGameCompleted({
+          gameType,
+          finalScore: newScore,
+          questionsCorrect,
+          totalQuestions: prev.questions.length,
+          accuracy,
+          gameDuration,
+          bestStreak: newBestStreak,
+          averageTimePerQuestion
+        });
+      }
+
+      return {
+        ...prev,
+        questions: updatedQuestions,
+        currentQuestion: nextQuestion,
+        score: newScore,
+        answers: newAnswers,
+        streak: newStreak,
+        bestStreak: newBestStreak,
+        isComplete,
+        isActive: !isComplete,
+        timeLeft: isComplete ? 0 : 30
+      };
+    });
+  }, [gameType]);
+
+  const abandonGame = useCallback(() => {
+    if (gameState.isActive && !gameState.isComplete) {
+      analyticsService.trackGameAbandoned(
+        gameType,
+        gameState.answers.length,
+        gameState.questions.length
+      );
+    }
+    
+    setGameState(prev => ({
+      ...prev,
+      isActive: false
+    }));
+  }, [gameState.isActive, gameState.isComplete, gameState.answers.length, gameState.questions.length, gameType]);
+
+  const resetGame = useCallback(() => {
+    setGameState({
+      questions: [],
+      currentQuestion: 0,
+      score: 0,
+      timeLeft: 30,
+      isActive: false,
+      isComplete: false,
+      answers: [],
+      streak: 0,
+      bestStreak: 0,
+      gameId: null,
+      startTime: null
+    });
+    setError(null);
+  }, []);
+
+  // Timer effect
+  useEffect(() => {
+    let timer;
+    if (gameState.isActive && gameState.timeLeft > 0) {
+      timer = setInterval(() => {
+        setGameState(prev => {
+          const newTimeLeft = prev.timeLeft - 1;
+          return { ...prev, timeLeft: newTimeLeft };
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [gameState.isActive, gameState.timeLeft]);
+
+  // Auto-answer when time runs out
+  useEffect(() => {
+    if (gameState.isActive && gameState.timeLeft <= 0) {
+      answerQuestion(null, 30); // null answer with maximum time
+    }
+  }, [gameState.timeLeft, gameState.isActive, answerQuestion]);
+
+  // Get current question with enhanced data
+  const getCurrentQuestion = () => {
+    const question = gameState.questions[gameState.currentQuestion];
+    if (!question) return null;
+
+    return {
+      ...question,
+      progress: ((gameState.currentQuestion + 1) / gameState.questions.length) * 100,
+      questionNumber: gameState.currentQuestion + 1,
+      totalQuestions: gameState.questions.length
+    };
+  };
+
+  return {
+    gameState: {
+      ...gameState,
+      isLoading,
+      error
+    },
+    actions: {
+      startGame,
+      answerQuestion,
+      abandonGame,
+      resetGame
+    },
+    currentQuestion: getCurrentQuestion(),
+    progress: gameState.questions.length > 0 ? 
+      ((gameState.currentQuestion) / gameState.questions.length) * 100 : 0,
+    
+    // Additional utilities
+    getGameStats: () => ({
+      accuracy: gameState.answers.length > 0 ? 
+        (gameState.answers.filter(a => a.correct).length / gameState.answers.length) * 100 : 0,
+      averageTime: gameState.answers.length > 0 ?
+        gameState.answers.reduce((sum, a) => sum + a.timeSpent, 0) / gameState.answers.length : 0,
+      totalTime: gameState.startTime ? Date.now() - gameState.startTime : 0
+    })
+  };
+};

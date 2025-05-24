@@ -1,0 +1,120 @@
+.game-interface {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  background: #f0ebdc;
+  padding: 16px 20px;
+  border-radius: 0;
+  flex-shrink: 0;
+  height: 60px;
+}
+
+.back-btn {
+  font-size: 14px;
+  padding: 8px 16px;
+}
+
+.game-title {
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  font-weight: bold;
+  color: black;
+  margin: 0;
+  flex: 1;
+  text-align: center;
+}
+
+.game-loading {
+  max-width: 600px;
+  margin: 100px auto 0;
+  text-align: center;
+}
+
+.game-active {
+  flex: 1;
+  display: flex;
+  gap: 20px;
+  min-height: 0;
+  padding: 20px;
+  height: calc(100vh - 120px); /* Account for header (60px) + footer (60px) */
+}
+
+.game-active.centered-layout {
+  justify-content: center;
+  align-items: center;
+}
+
+.game-active.centered-layout .question-section {
+  width: 100%;
+  max-width: 600px;
+}
+
+.question-section {
+  width: 380px;
+  flex-shrink: 0;
+}
+
+.map-section {
+  flex: 1;
+  height: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.preview-map {
+  height: 400px;
+  margin-top: 20px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.progress-stats {
+  background: rgba(245, 245, 220, 0.95);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 10px 20px;
+  flex-shrink: 0;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.map-toggle {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .game-interface {
+    padding: 0;
+  }
+  
+  .game-header {
+    margin-bottom: 5px;
+    padding: 10px;
+  }
+  
+  .game-title {
+    font-size: 1.3rem;
+  }
+  
+  .game-active {
+    height: calc(100vh - 80px);
+    padding: 10px;
+  }
+  
+  .question-section {
+    width: 100%;
+    max-width: 100%;
+  }
+}

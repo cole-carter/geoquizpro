@@ -1,0 +1,99 @@
+.error-boundary {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #fef2f2, #fee2e2);
+  padding: 20px;
+}
+
+.error-content {
+  max-width: 500px;
+  text-align: center;
+  background: white;
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.error-content h2 {
+  color: #dc2626;
+  margin-bottom: 16px;
+  font-size: 24px;
+}
+
+.error-content p {
+  color: #6b7280;
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+.error-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.error-details {
+  text-align: left;
+  margin-top: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.error-details summary {
+  padding: 12px 16px;
+  background: #f9fafb;
+  cursor: pointer;
+  font-weight: 500;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.error-details summary:hover {
+  background: #f3f4f6;
+}
+
+.error-stack {
+  padding: 16px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.error-stack h4 {
+  margin: 16px 0 8px 0;
+  color: #374151;
+  font-size: 14px;
+}
+
+.error-stack h4:first-child {
+  margin-top: 0;
+}
+
+.error-stack pre {
+  background: #1f2937;
+  color: #f9fafb;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 640px) {
+  .error-content {
+    padding: 20px;
+    margin: 10px;
+  }
+  
+  .error-actions {
+    flex-direction: column;
+  }
+  
+  .error-actions .btn {
+    width: 100%;
+  }
+}
