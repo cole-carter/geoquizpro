@@ -245,8 +245,15 @@ class DataService {
   }
 
   getRandomCountries(count = 10, excludeIds = []) {
+    // Whitelist of independent nations under 100K population that should still be included
+    const independentNationsWhitelist = [
+      'VAT', 'NRU', 'TUV', 'PLW', 'SMR', 'LIE', 'MCO', 
+      'KNA', 'MHL', 'DMA', 'AND', 'ATG', 'SYC'
+    ];
+    
     const available = Array.from(this.countries.values()).filter(
-      country => !excludeIds.includes(country.cca3) && country.population > 100000
+      country => !excludeIds.includes(country.cca3) && 
+                 (country.population > 100000 || independentNationsWhitelist.includes(country.cca3))
     );
     
     // Shuffle array

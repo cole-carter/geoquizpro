@@ -21,9 +21,9 @@ const GameInterfaceEnhanced = ({ gameType = 'location', onBack }) => {
     }
   }, []);
 
-  // Handle country click on map
+  // Handle country click on map - now purely calls game engine
   const handleCountryClick = (country, feature) => {
-    if (!gameState.isActive || !currentQuestion) return;
+    if (!gameState.isActive || !currentQuestion || gameState.showingFeedback) return;
     
     analyticsService.trackUserInteraction('country_selected', 'map', {
       country_id: country.cca3,
@@ -34,9 +34,11 @@ const GameInterfaceEnhanced = ({ gameType = 'location', onBack }) => {
     if (gameType === 'location' || gameType === 'flag') {
       setSelectedCountry(country.cca3);
       const timeSpent = 30 - gameState.timeLeft;
+      
+      // Let the game engine handle all feedback logic
       actions.answerQuestion(country.cca3, timeSpent);
       
-      // Clear selection after feedback
+      // Clear visual selection after feedback
       setTimeout(() => {
         setSelectedCountry(null);
       }, 1500);
@@ -45,13 +47,17 @@ const GameInterfaceEnhanced = ({ gameType = 'location', onBack }) => {
 
   // Handle option selection for multiple choice questions
   const handleAnswerSelect = (answer) => {
+    if (gameState.showingFeedback) return;
+    
     const timeSpent = 30 - gameState.timeLeft;
-    actions.answerQuestion(answer, timeSpent);
     
     analyticsService.trackUserInteraction('option_selected', 'question_card', {
       answer: answer,
       game_type: gameType
     });
+    
+    // Let the game engine handle all feedback logic
+    actions.answerQuestion(answer, timeSpent);
   };
 
   // Handle back button
@@ -133,7 +139,6 @@ const GameInterfaceEnhanced = ({ gameType = 'location', onBack }) => {
           ← Back
         </button>
         <h1 className="game-title">{getGameTitle()}</h1>
-        {/* Removed progress stats to focus on gameplay */}
       </div>
 
       {!gameState.isActive ? (
@@ -156,6 +161,7 @@ const GameInterfaceEnhanced = ({ gameType = 'location', onBack }) => {
               timeLeft={gameState.timeLeft}
               onAnswer={handleAnswerSelect}
               gameType={gameType}
+              gameState={gameState} // Pass entire game state for feedback
             />
             
             {/* Toggle map visibility on mobile */}
@@ -175,9 +181,9 @@ const GameInterfaceEnhanced = ({ gameType = 'location', onBack }) => {
               <WebMapTripleBuffer
                 key="game-map" // Force new instance for game
                 onCountryClick={handleCountryClick}
-                highlightedCountry={null} // Don't highlight - that gives away the answer!
                 selectedCountry={selectedCountry}
-                interactive={true}
+                interactive={!gameState.showingFeedback}
+                gameState={gameState} // Pass entire game state for feedback
               />
             </div>
           )}

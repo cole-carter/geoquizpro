@@ -18,6 +18,32 @@
   height: 60px;
 }
 
+/* Speed Mode Toggle */
+.speed-mode-toggle {
+  display: flex;
+  align-items: center;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+  gap: 8px;
+}
+
+.checkbox-label input[type="checkbox"] {
+  margin: 0;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.checkmark {
+  font-weight: 500;
+}
+
 .back-btn {
   font-size: 14px;
   padding: 8px 16px;
@@ -68,6 +94,7 @@
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  position: relative; /* For feedback overlay positioning */
 }
 
 .preview-map {
@@ -117,4 +144,103 @@
     width: 100%;
     max-width: 100%;
   }
+}
+
+/* Feedback Overlay */
+.feedback-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-in;
+}
+
+.feedback-message {
+  background: white;
+  padding: 30px;
+  border-radius: 15px;
+  text-align: center;
+  min-width: 200px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  animation: slideIn 0.3s ease-out;
+}
+
+.feedback-message.correct {
+  border: 3px solid #4caf50;
+}
+
+.feedback-message.incorrect {
+  border: 3px solid #f44336;
+}
+
+.feedback-icon {
+  font-size: 48px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.feedback-message.correct .feedback-icon {
+  color: #4caf50;
+}
+
+.feedback-message.incorrect .feedback-icon {
+  color: #f44336;
+}
+
+.feedback-text {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.feedback-message.correct .feedback-text {
+  color: #4caf50;
+}
+
+.feedback-message.incorrect .feedback-text {
+  color: #f44336;
+}
+
+.correct-answer-hint {
+  font-size: 14px;
+  color: #666;
+  margin-top: 10px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { 
+    opacity: 0;
+    transform: translateY(-30px) scale(0.9);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Green flashing animation for correct answers */
+@keyframes greenFlash {
+  0%, 100% { 
+    fill-opacity: 0.4;
+    stroke-opacity: 1.0;
+  }
+  50% { 
+    fill-opacity: 0.8;
+    stroke-opacity: 0.6;
+  }
+}
+
+.correct-answer-flashing {
+  animation: greenFlash 0.5s ease-in-out infinite;
 }

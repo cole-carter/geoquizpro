@@ -247,6 +247,41 @@
   line-height: 1.5;
 }
 
+/* Menu Settings */
+.menu-setting {
+  margin: 16px 0;
+}
+
+.setting-label {
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  gap: 8px;
+}
+
+.setting-label input[type="checkbox"] {
+  align-self: flex-start;
+  margin-right: 12px;
+  width: 18px;
+  height: 18px;
+}
+
+.setting-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.setting-description {
+  font-size: 14px;
+  color: #6b7280;
+  margin-left: 30px;
+  line-height: 1.4;
+}
+
 /* Mobile Responsive */
 @media (max-width: 768px) {
   .app-header {

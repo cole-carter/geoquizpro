@@ -7,11 +7,13 @@ const QuestionCard = ({
   onAnswer, 
   gameType, 
   questionNumber, 
-  totalQuestions 
+  totalQuestions,
+  gameState = null
 }) => {
   if (!question) return null;
 
   const handleOptionClick = (option) => {
+    if (gameState?.showingFeedback) return; // Disable during feedback
     onAnswer(option);
   };
 
@@ -70,15 +72,34 @@ const QuestionCard = ({
               <span className="region">{question.country.region}</span>
             </div>
             <div className="options-grid">
-              {question.options.map((option, index) => (
-                <button
-                  key={index}
-                  className="option-btn"
-                  onClick={() => handleOptionClick(option)}
-                >
-                  {option}
-                </button>
-              ))}
+              {question.options.map((option, index) => {
+                let buttonClass = "option-btn";
+                
+                // Show feedback during answer feedback period
+                if (gameState?.feedback) {
+                  if (option === gameState.feedback.selectedAnswer) {
+                    if (gameState.feedback.isCorrect) {
+                      buttonClass += " correct-answer";
+                    } else {
+                      buttonClass += " incorrect-answer";
+                    }
+                  } else if (option === question.answer && !gameState.feedback.isCorrect) {
+                    buttonClass += " correct-answer"; // Show correct answer when user was wrong
+                  }
+                  buttonClass += " disabled";
+                }
+                
+                return (
+                  <button
+                    key={index}
+                    className={buttonClass}
+                    onClick={() => handleOptionClick(option)}
+                    disabled={!!gameState?.showingFeedback}
+                  >
+                    {option}
+                  </button>
+                );
+              })}
             </div>
           </div>
         );
@@ -97,15 +118,34 @@ const QuestionCard = ({
               <span className="region">{question.country.region}</span>
             </div>
             <div className="options-grid">
-              {question.options.map((option, index) => (
-                <button
-                  key={index}
-                  className="option-btn"
-                  onClick={() => handleOptionClick(option)}
-                >
-                  {option}
-                </button>
-              ))}
+              {question.options.map((option, index) => {
+                let buttonClass = "option-btn";
+                
+                // Show feedback during answer feedback period
+                if (gameState?.feedback) {
+                  if (option === gameState.feedback.selectedAnswer) {
+                    if (gameState.feedback.isCorrect) {
+                      buttonClass += " correct-answer";
+                    } else {
+                      buttonClass += " incorrect-answer";
+                    }
+                  } else if (option === question.answer && !gameState.feedback.isCorrect) {
+                    buttonClass += " correct-answer"; // Show correct answer when user was wrong
+                  }
+                  buttonClass += " disabled";
+                }
+                
+                return (
+                  <button
+                    key={index}
+                    className={buttonClass}
+                    onClick={() => handleOptionClick(option)}
+                    disabled={!!gameState?.showingFeedback}
+                  >
+                    {option}
+                  </button>
+                );
+              })}
             </div>
           </div>
         );

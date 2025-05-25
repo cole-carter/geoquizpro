@@ -14,7 +14,10 @@ export const useGameEnhanced = (gameType = 'location', questionCount = 10) => {
     streak: 0,
     bestStreak: 0,
     gameId: null,
-    startTime: null
+    startTime: null,
+    // Feedback system state
+    showingFeedback: false,
+    feedback: null // {isCorrect, userAnswer, correctAnswer, userAnswerCountryId, correctAnswerCountryId}
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -157,93 +160,142 @@ export const useGameEnhanced = (gameType = 'location', questionCount = 10) => {
     }
   }, [generateQuestions, gameType]);
 
+  // New feedback-aware answer processing
   const answerQuestion = useCallback((answer, timeSpent = 0) => {
     setGameState(prev => {
+      // Don't allow answering during feedback or if not active
+      if (prev.showingFeedback || !prev.isActive) return prev;
+      
       const currentQ = prev.questions[prev.currentQuestion];
       const isCorrect = answer === currentQ.answer;
       
-      // Calculate score with time bonus
-      let scoreEarned = 0;
-      if (isCorrect) {
-        const timeBonus = Math.max(1, Math.floor((30 - timeSpent) / 3));
-        const streakBonus = Math.floor(prev.streak / 3);
-        scoreEarned = 10 + timeBonus + streakBonus;
-      }
-      
-      const newScore = prev.score + scoreEarned;
-      const newStreak = isCorrect ? prev.streak + 1 : 0;
-      const newBestStreak = Math.max(prev.bestStreak, newStreak);
-      
-      // Update question
-      const updatedQuestions = [...prev.questions];
-      updatedQuestions[prev.currentQuestion] = {
-        ...currentQ,
-        answered: true,
-        correct: isCorrect,
-        timeSpent,
+      // Create feedback data for highlighting
+      const feedback = {
+        isCorrect,
         userAnswer: answer,
-        scoreEarned
+        correctAnswer: currentQ.answer,
+        userAnswerCountryId: gameType === 'location' || gameType === 'flag' ? answer : null,
+        correctAnswerCountryId: gameType === 'location' || gameType === 'flag' ? currentQ.answer : null,
+        selectedAnswer: gameType !== 'location' && gameType !== 'flag' ? answer : null
       };
-
-      // Record answer
-      const newAnswer = {
-        questionId: prev.currentQuestion,
-        answer,
-        correct: isCorrect,
-        timeSpent,
-        scoreEarned
-      };
-      const newAnswers = [...prev.answers, newAnswer];
-
-      // Track the answer
-      analyticsService.trackQuestionAnswered(gameType, {
-        countryId: currentQ.country.cca3,
-        countryName: currentQ.country.name,
-        correct: isCorrect,
-        timeSpent,
-        scoreEarned,
-        streak: newStreak,
-        questionType: currentQ.type,
+      
+      console.log('Game engine feedback:', {
+        isCorrect,
         userAnswer: answer,
-        correctAnswer: currentQ.answer
+        correctAnswer: currentQ.answer,
+        questionIndex: prev.currentQuestion,
+        gameType
       });
-
-      // Check if game is complete
-      const nextQuestion = prev.currentQuestion + 1;
-      const isComplete = nextQuestion >= prev.questions.length;
-
-      // Track game completion
-      if (isComplete) {
-        const gameDuration = Date.now() - prev.startTime;
-        const questionsCorrect = newAnswers.filter(a => a.correct).length;
-        const accuracy = (questionsCorrect / prev.questions.length) * 100;
-        const averageTimePerQuestion = gameDuration / prev.questions.length;
-        
-        analyticsService.trackGameCompleted({
-          gameType,
-          finalScore: newScore,
-          questionsCorrect,
-          totalQuestions: prev.questions.length,
-          accuracy,
-          gameDuration,
-          bestStreak: newBestStreak,
-          averageTimePerQuestion
-        });
-      }
-
+      
+      // Start feedback phase - don't advance game yet
       return {
         ...prev,
-        questions: updatedQuestions,
-        currentQuestion: nextQuestion,
-        score: newScore,
-        answers: newAnswers,
-        streak: newStreak,
-        bestStreak: newBestStreak,
-        isComplete,
-        isActive: !isComplete,
-        timeLeft: isComplete ? 0 : 30
+        showingFeedback: true,
+        feedback,
+        // Store answer data for when feedback completes
+        pendingAnswer: {
+          answer,
+          timeSpent,
+          isCorrect,
+          currentQ
+        }
       };
     });
+    
+    // Auto-advance after feedback delay
+    setTimeout(() => {
+      setGameState(prev => {
+        if (!prev.showingFeedback || !prev.pendingAnswer) return prev;
+        
+        const { answer, timeSpent, isCorrect, currentQ } = prev.pendingAnswer;
+        
+        // Calculate score with time bonus
+        let scoreEarned = 0;
+        if (isCorrect) {
+          const timeBonus = Math.max(1, Math.floor((30 - timeSpent) / 3));
+          const streakBonus = Math.floor(prev.streak / 3);
+          scoreEarned = 10 + timeBonus + streakBonus;
+        }
+        
+        const newScore = prev.score + scoreEarned;
+        const newStreak = isCorrect ? prev.streak + 1 : 0;
+        const newBestStreak = Math.max(prev.bestStreak, newStreak);
+        
+        // Update question
+        const updatedQuestions = [...prev.questions];
+        updatedQuestions[prev.currentQuestion] = {
+          ...currentQ,
+          answered: true,
+          correct: isCorrect,
+          timeSpent,
+          userAnswer: answer,
+          scoreEarned
+        };
+
+        // Record answer
+        const newAnswer = {
+          questionId: prev.currentQuestion,
+          answer,
+          correct: isCorrect,
+          timeSpent,
+          scoreEarned
+        };
+        const newAnswers = [...prev.answers, newAnswer];
+
+        // Track the answer
+        analyticsService.trackQuestionAnswered(gameType, {
+          countryId: currentQ.country.cca3,
+          countryName: currentQ.country.name,
+          correct: isCorrect,
+          timeSpent,
+          scoreEarned,
+          streak: newStreak,
+          questionType: currentQ.type,
+          userAnswer: answer,
+          correctAnswer: currentQ.answer
+        });
+
+        // Check if game is complete
+        const nextQuestion = prev.currentQuestion + 1;
+        const isComplete = nextQuestion >= prev.questions.length;
+
+        // Track game completion
+        if (isComplete) {
+          const gameDuration = Date.now() - prev.startTime;
+          const questionsCorrect = newAnswers.filter(a => a.correct).length;
+          const accuracy = (questionsCorrect / prev.questions.length) * 100;
+          const averageTimePerQuestion = gameDuration / prev.questions.length;
+          
+          analyticsService.trackGameCompleted({
+            gameType,
+            finalScore: newScore,
+            questionsCorrect,
+            totalQuestions: prev.questions.length,
+            accuracy,
+            gameDuration,
+            bestStreak: newBestStreak,
+            averageTimePerQuestion
+          });
+        }
+
+        return {
+          ...prev,
+          questions: updatedQuestions,
+          currentQuestion: nextQuestion,
+          score: newScore,
+          answers: newAnswers,
+          streak: newStreak,
+          bestStreak: newBestStreak,
+          isComplete,
+          isActive: !isComplete,
+          timeLeft: isComplete ? 0 : 30,
+          // Clear feedback state
+          showingFeedback: false,
+          feedback: null,
+          pendingAnswer: null
+        };
+      });
+    }, 1000); // 1 second feedback delay
   }, [gameType]);
 
   const abandonGame = useCallback(() => {
@@ -273,7 +325,10 @@ export const useGameEnhanced = (gameType = 'location', questionCount = 10) => {
       streak: 0,
       bestStreak: 0,
       gameId: null,
-      startTime: null
+      startTime: null,
+      showingFeedback: false,
+      feedback: null,
+      pendingAnswer: null
     });
     setError(null);
   }, []);
