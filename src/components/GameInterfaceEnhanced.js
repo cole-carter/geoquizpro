@@ -33,7 +33,8 @@ const GameInterfaceEnhanced = ({ gameType = 'location', onBack }) => {
     
     if (gameType === 'location' || gameType === 'flag') {
       setSelectedCountry(country.cca3);
-      const timeSpent = 30 - gameState.timeLeft;
+      const maxTime = gameType === 'location' ? 30 : 10;
+      const timeSpent = maxTime - gameState.timeLeft;
       
       // Let the game engine handle all feedback logic
       actions.answerQuestion(country.cca3, timeSpent);
@@ -49,7 +50,8 @@ const GameInterfaceEnhanced = ({ gameType = 'location', onBack }) => {
   const handleAnswerSelect = (answer) => {
     if (gameState.showingFeedback) return;
     
-    const timeSpent = 30 - gameState.timeLeft;
+    const maxTime = gameType === 'location' ? 30 : 10;
+    const timeSpent = maxTime - gameState.timeLeft;
     
     analyticsService.trackUserInteraction('option_selected', 'question_card', {
       answer: answer,

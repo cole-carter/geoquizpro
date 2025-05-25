@@ -155,17 +155,27 @@ export const useGameEnhanced = (gameType = 'location', questionCount = 10) => {
     ];
   };
 
+  const getCountryCodeByName = (countryName) => {
+    // Helper function to convert country name back to country code for map highlighting
+    const allCountries = dataService.getAllCountries();
+    const country = allCountries.find(c => c.name === countryName);
+    return country ? country.cca3 : null;
+  };
+
   const startGame = useCallback(async () => {
     try {
       setError(null);
       const questions = await generateQuestions();
       const gameId = `${gameType}_${Date.now()}`;
       
+      // Set timer based on game type
+      const timerDuration = gameType === 'location' ? 30 : 10; // Location: 30s, Multiple choice: 10s
+      
       setGameState({
         questions,
         currentQuestion: 0,
         score: 0,
-        timeLeft: 30,
+        timeLeft: timerDuration,
         isActive: true,
         isComplete: false,
         answers: [],
@@ -193,13 +203,26 @@ export const useGameEnhanced = (gameType = 'location', questionCount = 10) => {
       const isCorrect = answer === currentQ.answer;
       
       // Create feedback data for highlighting
+      let userAnswerCountryId = null;
+      let correctAnswerCountryId = null;
+      
+      if (gameType === 'location') {
+        // Location quiz: answer is already country code
+        userAnswerCountryId = answer;
+        correctAnswerCountryId = currentQ.answer;
+      } else if (gameType === 'flag') {
+        // Flag quiz: convert country name back to country code for map highlighting
+        userAnswerCountryId = getCountryCodeByName(answer);
+        correctAnswerCountryId = currentQ.country.cca3;
+      }
+      
       const feedback = {
         isCorrect,
         userAnswer: answer,
         correctAnswer: currentQ.answer,
-        userAnswerCountryId: gameType === 'location' || gameType === 'flag' ? answer : null,
-        correctAnswerCountryId: gameType === 'location' || gameType === 'flag' ? currentQ.answer : null,
-        selectedAnswer: gameType !== 'location' && gameType !== 'flag' ? answer : null
+        userAnswerCountryId,
+        correctAnswerCountryId,
+        selectedAnswer: gameType === 'capital' || gameType === 'population' || gameType === 'flag' ? answer : null
       };
       
       console.log('Game engine feedback:', {
@@ -225,19 +248,33 @@ export const useGameEnhanced = (gameType = 'location', questionCount = 10) => {
       };
     });
     
-    // Auto-advance after feedback delay
+    // Auto-advance after feedback delay (0.75 seconds)
     setTimeout(() => {
       setGameState(prev => {
         if (!prev.showingFeedback || !prev.pendingAnswer) return prev;
         
         const { answer, timeSpent, isCorrect, currentQ } = prev.pendingAnswer;
         
-        // Calculate score with time bonus
+        // Calculate score with time bonus (no base points, no streak bonus)
         let scoreEarned = 0;
         if (isCorrect) {
-          const timeBonus = Math.max(1, Math.floor((30 - timeSpent) / 3));
-          const streakBonus = Math.floor(prev.streak / 3);
-          scoreEarned = 10 + timeBonus + streakBonus;
+          if (gameType === 'location') {
+            // Location quiz: 5-second cliffs, 6 possible scores (500-1000)
+            if (timeSpent <= 5) scoreEarned = 1000;
+            else if (timeSpent <= 10) scoreEarned = 900;
+            else if (timeSpent <= 15) scoreEarned = 800;
+            else if (timeSpent <= 20) scoreEarned = 700;
+            else if (timeSpent <= 25) scoreEarned = 600;
+            else scoreEarned = 500; // 25+ seconds
+          } else {
+            // Multiple choice quizzes: 10-second timer with 2-second cliffs
+            if (timeSpent <= 2) scoreEarned = 1000;
+            else if (timeSpent <= 4) scoreEarned = 900;
+            else if (timeSpent <= 6) scoreEarned = 800;
+            else if (timeSpent <= 8) scoreEarned = 700;
+            else if (timeSpent < 10) scoreEarned = 600;
+            else scoreEarned = 0; // 10+ seconds or timeout
+          }
         }
         
         const newScore = prev.score + scoreEarned;
@@ -311,14 +348,14 @@ export const useGameEnhanced = (gameType = 'location', questionCount = 10) => {
           bestStreak: newBestStreak,
           isComplete,
           isActive: !isComplete,
-          timeLeft: isComplete ? 0 : 30,
+          timeLeft: isComplete ? 0 : (gameType === 'location' ? 30 : 10),
           // Clear feedback state
           showingFeedback: false,
           feedback: null,
           pendingAnswer: null
         };
       });
-    }, 1000); // 1 second feedback delay
+    }, 750); // 0.75 second feedback delay
   }, [gameType]);
 
   const abandonGame = useCallback(() => {
@@ -373,9 +410,10 @@ export const useGameEnhanced = (gameType = 'location', questionCount = 10) => {
   // Auto-answer when time runs out
   useEffect(() => {
     if (gameState.isActive && gameState.timeLeft <= 0) {
-      answerQuestion(null, 30); // null answer with maximum time
+      const maxTime = gameType === 'location' ? 30 : 10;
+      answerQuestion(null, maxTime); // null answer with maximum time for game type
     }
-  }, [gameState.timeLeft, gameState.isActive, answerQuestion]);
+  }, [gameState.timeLeft, gameState.isActive, answerQuestion, gameType]);
 
   // Get current question with enhanced data
   const getCurrentQuestion = () => {

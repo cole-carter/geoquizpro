@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import './QuestionCard.css';
 
 const QuestionCard = ({ 
@@ -12,14 +12,30 @@ const QuestionCard = ({
 }) => {
   if (!question) return null;
 
+  // Remove focus from all buttons when question changes to prevent persistent blue outline
+  useEffect(() => {
+    const focusedElement = document.activeElement;
+    if (focusedElement && focusedElement.classList.contains('option-btn')) {
+      focusedElement.blur();
+    }
+  }, [question?.id, question?.question]); // Trigger when question changes
+
   const handleOptionClick = (option) => {
     if (gameState?.showingFeedback) return; // Disable during feedback
     onAnswer(option);
+    // Also blur the clicked button to remove focus
+    setTimeout(() => {
+      if (document.activeElement && document.activeElement.classList.contains('option-btn')) {
+        document.activeElement.blur();
+      }
+    }, 100);
   };
 
   const getTimeColor = () => {
-    if (timeLeft > 20) return '#059669';
-    if (timeLeft > 10) return '#f59e0b';
+    const maxTime = gameType === 'location' ? 30 : 10;
+    const ratio = timeLeft / maxTime;
+    if (ratio > 0.66) return '#059669';
+    if (ratio > 0.33) return '#f59e0b';
     return '#ef4444';
   };
 
@@ -28,16 +44,37 @@ const QuestionCard = ({
       case 'location':
         return (
           <div className="location-question">
-            <p className="instruction">Click on the map to find:</p>
-            <h3 className="country-name">{question.country.name}</h3>
-            <div className="country-info">
-              <img 
-                src={question.country.flag?.png || 'https://flagcdn.com/w320/unknown.png'} 
-                alt={`${question.country.name} flag`}
-                className="flag-image-large"
-                onError={(e) => { e.target.src = 'https://flagcdn.com/w320/unknown.png'; }}
-              />
-              <span className="region">{question.country.region}</span>
+            {/* Desktop/Tablet Layout */}
+            <div className="location-desktop">
+              <p className="instruction">Click on the map to find:</p>
+              <h3 className="country-name">{question.country.name}</h3>
+              <div className="country-info">
+                <img 
+                  src={question.country.flag?.png || 'https://flagcdn.com/w320/unknown.png'} 
+                  alt={`${question.country.name} flag`}
+                  className="flag-image-large"
+                  onError={(e) => { e.target.src = 'https://flagcdn.com/w320/unknown.png'; }}
+                />
+                <span className="region">{question.country.region}</span>
+              </div>
+            </div>
+            
+            {/* Mobile Horizontal Strip Layout */}
+            <div className="location-mobile">
+              <div className="mobile-strip">
+                <div className="country-section">
+                  <div className="country-name-mobile">{question.country.name}</div>
+                  <div className="instruction-mobile">Tap on map to find</div>
+                </div>
+                <div className="flag-section">
+                  <img 
+                    src={question.country.flag?.png || 'https://flagcdn.com/w320/unknown.png'} 
+                    alt={`${question.country.name} flag`}
+                    className="flag-image-mobile"
+                    onError={(e) => { e.target.src = 'https://flagcdn.com/w320/unknown.png'; }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         );
@@ -185,7 +222,7 @@ const QuestionCard = ({
   };
 
   return (
-    <div className="question-card">
+    <div className={`question-card ${gameType === 'location' ? 'location-quiz' : ''}`}>
       <div className="question-header">
         <div className="question-counter">
           Question {questionNumber} of {totalQuestions}
@@ -200,7 +237,7 @@ const QuestionCard = ({
         <div 
           className="progress-fill"
           style={{ 
-            width: `${(timeLeft / 30) * 100}%`,
+            width: `${(timeLeft / (gameType === 'location' ? 30 : 10)) * 100}%`,
             backgroundColor: getTimeColor()
           }}
         />

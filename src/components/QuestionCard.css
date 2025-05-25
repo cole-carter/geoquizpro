@@ -160,6 +160,19 @@
   transform: translateY(0);
 }
 
+.option-btn:focus {
+  outline: none; /* Remove default focus outline */
+  border-color: #e5e7eb; /* Reset border to default */
+  background: white; /* Reset background to default */
+}
+
+/* Ensure focus styles don't persist on mobile */
+.option-btn:focus:not(:focus-visible) {
+  outline: none;
+  border-color: #e5e7eb;
+  background: white;
+}
+
 .location-question,
 .flag-question,
 .capital-question,
@@ -174,6 +187,68 @@
   box-sizing: border-box;
   padding: 0;
   margin: 0;
+}
+
+/* Mobile-specific location quiz layout */
+.location-desktop {
+  display: block;
+}
+
+.location-mobile {
+  display: none;
+}
+
+/* Mobile horizontal strip layout */
+.mobile-strip {
+  display: flex;
+  width: 100%;
+  height: 80px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.country-section {
+  flex: 0.75;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 8px 16px;
+  background: white;
+}
+
+.country-name-mobile {
+  font-size: clamp(16px, 4vw, 20px);
+  font-weight: bold;
+  color: #1f2937;
+  line-height: 1.2;
+  margin-bottom: 4px;
+  text-align: left;
+}
+
+.instruction-mobile {
+  font-size: clamp(12px, 3vw, 14px);
+  color: #6b7280;
+  text-align: left;
+}
+
+.flag-section {
+  flex: 0.25;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  border-left: 2px solid #e5e7eb;
+}
+
+.flag-image-mobile {
+  width: clamp(40px, 8vw, 60px);
+  height: auto;
+  max-height: 60px;
+  object-fit: contain;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 
@@ -195,6 +270,31 @@
 @media (max-width: 639px) {
   .options-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Mobile layout switching for location quiz */
+@media (max-width: 768px) {
+  .location-desktop {
+    display: none;
+  }
+  
+  .location-mobile {
+    display: block;
+  }
+  
+  /* Reduce location question height significantly on mobile */
+  .location-question {
+    min-height: 80px;
+    max-height: 100px;
+    padding: 0;
+    margin: 0;
+  }
+  
+  /* Make the entire question card much shorter for location quiz on mobile */
+  .question-card.location-quiz {
+    max-height: 180px;
+    min-height: 160px;
   }
 }
 
