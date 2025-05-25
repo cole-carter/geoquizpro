@@ -80,7 +80,9 @@
 
 .game-active.centered-layout .question-section {
   width: 100%;
-  max-width: 600px;
+  max-width: 900px; /* Increased for 8 options */
+  padding: 0 20px;
+  box-sizing: border-box;
 }
 
 .question-section {

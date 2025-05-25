@@ -132,7 +132,7 @@ const WebMapTripleBuffer = ({
     if (!mapContainerRef.current || mapInstanceRef.current) return;
 
     try {
-      // Create map with world wrapping
+      // Create map with world wrapping and mobile optimization
       const map = L.map(mapContainerRef.current, {
         center: [20, 0],
         zoom: 2,
@@ -142,6 +142,17 @@ const WebMapTripleBuffer = ({
         maxBounds: [[-85, -Infinity], [85, Infinity]],
         zoomControl: false,
         attributionControl: true,
+        // Mobile-specific configurations
+        touchZoom: true,
+        tap: true,
+        tapTolerance: 15,
+        touchTimeout: 1000,
+        doubleClickZoom: false,
+        scrollWheelZoom: 'center',
+        preferCanvas: true,
+        bounceAtZoomLimits: false,
+        inertia: true,
+        inertiaDeceleration: 3000,
       });
 
       // Add custom zoom control
@@ -210,6 +221,24 @@ const WebMapTripleBuffer = ({
       // Add click listener for country detection
       map.on('click', (e) => {
         handleMapClick(e);
+      });
+
+      // Enhanced mobile touch handling
+      let touchStartLatlng = null;
+      
+      map.on('touchstart', (e) => {
+        if (!interactive || gameState?.showingFeedback) return;
+        touchStartLatlng = e.latlng;
+      });
+
+      map.on('touchend', (e) => {
+        if (!interactive || gameState?.showingFeedback) return;
+        // Only trigger click if touch didn't move significantly (tap vs drag)
+        if (touchStartLatlng && 
+            map.distance(e.latlng, touchStartLatlng) < 20) {
+          handleMapClick(e);
+        }
+        touchStartLatlng = null;
       });
 
       // Add move event listeners for buffer management

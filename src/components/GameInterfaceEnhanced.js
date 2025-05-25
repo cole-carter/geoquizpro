@@ -154,7 +154,7 @@ const GameInterfaceEnhanced = ({ gameType = 'location', onBack }) => {
           </div>
         </div>
       ) : (
-        <div className={`game-active ${(gameType === 'capital' || gameType === 'population') ? 'centered-layout' : ''}`}>
+        <div className={`game-active ${(gameType === 'capital' || gameType === 'population' || gameType === 'flag') ? 'centered-layout' : ''}`}>
           <div className="question-section">
             <QuestionCard
               question={currentQuestion}
@@ -165,7 +165,7 @@ const GameInterfaceEnhanced = ({ gameType = 'location', onBack }) => {
             />
             
             {/* Toggle map visibility on mobile */}
-            {(gameType === 'location' || gameType === 'flag') && (
+            {gameType === 'location' && (
               <button 
                 className="btn btn-secondary map-toggle"
                 onClick={() => setShowMap(!showMap)}
@@ -176,7 +176,7 @@ const GameInterfaceEnhanced = ({ gameType = 'location', onBack }) => {
           </div>
           
           {/* Map section */}
-          {(gameType === 'location' || gameType === 'flag') && showMap && (
+          {gameType === 'location' && showMap && (
             <div className="map-section">
               <WebMapTripleBuffer
                 key="game-map" // Force new instance for game

@@ -70,8 +70,9 @@ export const useGameEnhanced = (gameType = 'location', questionCount = 10) => {
               ...baseQuestion,
               question: `Which country does this flag belong to?`,
               flag: country.flag,
-              answer: country.cca3,
-              instructions: 'Click on the country on the map'
+              answer: country.name,
+              options: generateFlagOptions(country.name),
+              instructions: 'Select the correct country'
             };
           
           case 'population':
@@ -108,12 +109,34 @@ export const useGameEnhanced = (gameType = 'location', questionCount = 10) => {
       .map(country => country.capital)
       .filter(capital => capital && capital !== 'Unknown' && capital !== '');
     
-    // Add 3 random other capitals from ALL countries
-    while (options.length < 4 && otherCapitals.length > 0) {
+    // Add 7 random other capitals from ALL countries (8 total options)
+    while (options.length < 8 && otherCapitals.length > 0) {
       const randomIndex = Math.floor(Math.random() * otherCapitals.length);
       const randomCapital = otherCapitals.splice(randomIndex, 1)[0];
       if (!options.includes(randomCapital)) {
         options.push(randomCapital);
+      }
+    }
+    
+    // Shuffle options
+    return options.sort(() => Math.random() - 0.5);
+  };
+
+  const generateFlagOptions = (correctCountry) => {
+    // Get ALL countries from data service
+    const allCountries = dataService.getAllCountries();
+    const options = [correctCountry];
+    const otherCountries = allCountries
+      .filter(country => country.name !== correctCountry)
+      .map(country => country.name)
+      .filter(name => name && name !== 'Unknown' && name !== '');
+    
+    // Add 7 random other country names (8 total options)
+    while (options.length < 8 && otherCountries.length > 0) {
+      const randomIndex = Math.floor(Math.random() * otherCountries.length);
+      const randomCountry = otherCountries.splice(randomIndex, 1)[0];
+      if (!options.includes(randomCountry)) {
+        options.push(randomCountry);
       }
     }
     
