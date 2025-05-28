@@ -11,12 +11,6 @@ const HomePage = ({ onStartGame }) => {
 
   const gameTypes = [
     {
-      id: 'location',
-      title: 'Find the Country',
-      description: 'Click on countries on the interactive map',
-      icon: '🗺️'
-    },
-    {
       id: 'capital',
       title: 'Capital Quiz',
       description: 'Test your knowledge of world capitals',
@@ -26,13 +20,19 @@ const HomePage = ({ onStartGame }) => {
       id: 'flag',
       title: 'Flag Quiz',
       description: 'Identify countries by their flags',
-      icon: '🏳️'
+      icon: '🇸🇨'
     },
     {
       id: 'population',
       title: 'Population Quiz',
       description: 'Guess population ranges of countries',
       icon: '👥'
+    },
+    {
+      id: 'location',
+      title: 'Find the Country*',
+      description: 'Click on countries on the interactive map',
+      icon: '🗺️'
     }
   ];
 
@@ -124,6 +124,10 @@ const HomePage = ({ onStartGame }) => {
               <p className="game-description">{game.description}</p>
             </div>
           ))}
+        </div>
+        
+        <div className="mobile-note">
+          <p>*Map interactions work best on desktop and tablet devices</p>
         </div>
       </main>
       
